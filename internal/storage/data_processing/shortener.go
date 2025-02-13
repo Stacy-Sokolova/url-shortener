@@ -9,7 +9,7 @@ var ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
 func URLShortener(url string) string {
 	hash := sha1.New()
 	hash.Write([]byte(url))
-	s := hash.Sum(nil)
+	s := hash.Sum(nil)[:10]
 	result := make([]byte, 10)
 	k := 9
 	for k >= 0 {
