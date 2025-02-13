@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+option go_package = ".";
+
+// для генерации сервиса:
+// protoc --go_out=. --go-grpc_out=. *.proto
+
+package service;
+
+message Request {
+    string url = 1;
+}
+
+message Response {
+    string url = 1;
+}
+
+service URL {
+    rpc GetFullURL (Request) returns (Response) {}
+    rpc CreateShortURL (Request) returns (Response) {}
+}
