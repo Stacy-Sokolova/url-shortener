@@ -4,6 +4,7 @@ import (
 	"context"
 
 	pb "url-server/internal/service/proto"
+	fnc "url-server/internal/storage/data_processing"
 
 	"github.com/dgraph-io/badger"
 )
@@ -18,12 +19,11 @@ func NewStorage(db *badger.DB) *Storage {
 
 func (s *Storage) CreateShortURL(ctx context.Context, r *pb.Request) (*pb.Response, error) {
 	fullURL := r.GetUrl()
-	shortURL := "generateFunc"
+	shortURL := fnc.URLShortener(fullURL)
 	val := []byte(fullURL)
 	key := []byte(shortURL)
 	err := s.db.Update(func(txn *badger.Txn) error {
-		err := txn.Set(key, val)
-		return err
+		return txn.Set(key, val)
 	})
 	if err != nil {
 		return nil, err

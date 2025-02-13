@@ -1,4 +1,4 @@
-package dataprocessing
+package fnc
 
 import (
 	"crypto/sha1"

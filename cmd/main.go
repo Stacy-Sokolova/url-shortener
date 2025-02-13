@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,16 +12,20 @@ import (
 
 	"github.com/dgraph-io/badger"
 	"github.com/jmoiron/sqlx"
+	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 func main() {
-	//logrus
+	logrus.SetFormatter(new(logrus.JSONFormatter))
 
-	//config
 	if err := initConfig(); err != nil {
-		//logrus.Fatalf("error initializing configs: %s", err.Error())
-		fmt.Printf("error initializing configs: %s", err.Error())
+		logrus.Fatalf("error initializing configs: %s", err.Error())
+	}
+
+	if err := godotenv.Load(); err != nil {
+		logrus.Fatalf("error loading env variables: %s", err.Error())
 	}
 
 	dbType := dbParam()
@@ -34,10 +37,9 @@ func main() {
 	if dbType == "inmemory" {
 		memdb, err := m.NewMemDB()
 		if err != nil {
-			fmt.Printf("failed to initialize db: %s", err.Error())
+			logrus.Fatalf("failed to initialize in-memory db: %s", err.Error())
 		}
 		storage = m.NewStorage(memdb)
-		fmt.Println("memdb init")
 	} else {
 		db, err := pg.NewPostgresDB(pg.Config{
 			Host:     viper.GetString("db.host"),
@@ -48,11 +50,9 @@ func main() {
 			Password: viper.GetString("db.dbpassword"),
 		})
 		if err != nil {
-			//logrus.Fatalf("failed to initialize db: %s", err.Error())
-			fmt.Printf("failed to initialize db: %s", err.Error())
+			logrus.Fatalf("failed to initialize db: %s", err.Error())
 		}
 		storage = pg.NewStorage(db)
-		fmt.Println("postgres init")
 	}
 
 	service := service.NewURLServer(storage)
@@ -60,27 +60,27 @@ func main() {
 	srv := new(s.Server)
 	go func() {
 		if err := srv.Run(viper.GetString("port"), service); err != nil {
-			//logrus.Fatalf("error occured while running http server: %s", err.Error())
-			fmt.Printf("error occured while running http server: %s", err.Error())
+			logrus.Fatalf("error occured while running http server: %s", err.Error())
 		}
 	}()
-	fmt.Println("Server started")
+
+	logrus.Print("App Started")
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
 
+	logrus.Print("App Shutting Down")
+
 	srv.Shutdown()
 
 	if dbType == "postgres" {
 		if err := db.Close(); err != nil {
-			//logrus.Errorf("error occured on db connection close: %s", err.Error())
-			fmt.Printf("error occured on db connection close: %s", err.Error())
+			logrus.Errorf("error occured on db connection close: %s", err.Error())
 		}
 	} else {
 		if err := memdb.Close(); err != nil {
-			//logrus.Errorf("error occured on db connection close: %s", err.Error())
-			fmt.Printf("error occured on db connection close: %s", err.Error())
+			logrus.Errorf("error occured on db connection close: %s", err.Error())
 		}
 	}
 }
@@ -92,9 +92,9 @@ func initConfig() error {
 }
 
 func dbParam() string {
-	dbtype := os.Getenv("STORAGE_TYPE")
+	//dbtype := ""
 	/*if len(os.Args) > 1 {
 		dbtype = os.Args[1]
 	}*/
-	return dbtype
+	return os.Getenv("STORAGE_TYPE")
 }

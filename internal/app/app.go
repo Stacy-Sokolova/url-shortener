@@ -18,7 +18,6 @@ func (s *Server) Run(port string, service *s.MyURLServer) error {
 	lis, err := net.Listen("tcp", "127.0.0.1:"+port)
 	if err != nil {
 		return err
-		//log.Fatalln("Cant listen port", err)
 	}
 
 	s.grpcServer = grpc.NewServer()
@@ -27,7 +26,6 @@ func (s *Server) Run(port string, service *s.MyURLServer) error {
 
 	if err := s.grpcServer.Serve(lis); err != nil {
 		return err
-		//log.Fatalf("failed to serve: %v", err)
 	}
 
 	return nil

@@ -27,7 +27,6 @@ func TestGetURL(t *testing.T) {
 
 	conn, err := grpc.NewClient(listenAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		//log.Fatalf("fail to dial: %v", err)
 		t.Fatalf("fail to dial: %v", err)
 	}
 	defer conn.Close()
@@ -39,16 +38,10 @@ func TestGetURL(t *testing.T) {
 
 	r1, _ := client.CreateShortURL(ctx, &pb.Request{Url: "http://welcome.com"})
 
-	//ctx1, cancel1 := context.WithTimeout(context.Background(), 5*time.Second)
-	//defer cancel1()
-
 	r, err := client.GetFullURL(ctx, &pb.Request{Url: r1.GetUrl()})
 	if err != nil {
-		//log.Fatalf("could not greet: %v", err)
 		t.Fatalf("could not get original url: %v", err)
 	}
-	//log.Printf("User: %s", r.GetName())
-	fmt.Printf("Full URL: %s", r.GetUrl())
 
 	result := &pb.Response{Url: "http://welcome.com"}
 
@@ -61,16 +54,15 @@ func StartMyService(ctx context.Context, addr string) error {
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
-		//log.Fatalln("Cant listen port", err)
 	}
 
-	opts := badger.DefaultOptions("./cmd")
-	//opts.Dir = "" // Указываем путь к in-memory хранилищу
+	opts := badger.DefaultOptions("")
 	db, err := badger.Open(opts)
 	if err != nil {
-		//logrus.Fatalf("failed to initialize db: %s", err.Error())
-		fmt.Printf("failed to initialize db: %s", err.Error())
+		return err
 	}
+	defer db.Close()
+
 	storage := memdb.NewStorage(db)
 	service := service.NewURLServer(storage)
 
@@ -78,15 +70,14 @@ func StartMyService(ctx context.Context, addr string) error {
 	pb.RegisterURLServer(server, service)
 
 	go func() {
-		fmt.Println("Starting server at " + addr)
 		err = server.Serve(lis)
 		if err != nil {
 			fmt.Println("server Error")
 		}
 
 		<-ctx.Done()
-		server.Stop()
 
+		server.Stop()
 		err = lis.Close()
 		if err != nil {
 			fmt.Println("close Error")

@@ -21,9 +21,14 @@ const (
 )
 
 func TestCreateURL(t *testing.T) {
+	ctx, finish := context.WithCancel(context.Background())
+	defer finish()
+	err := StartMyService(ctx, listenAddr)
+	if err != nil {
+		t.Fatalf("fail to start server: %v", err)
+	}
 	conn, err := grpc.NewClient(listenAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		//log.Fatalf("fail to dial: %v", err)
 		t.Fatalf("fail to dial: %v", err)
 	}
 	defer conn.Close()
@@ -35,11 +40,8 @@ func TestCreateURL(t *testing.T) {
 
 	r, err := client.CreateShortURL(ctx, &pb.Request{Url: "http://welcome.com"})
 	if err != nil {
-		//log.Fatalf("could not greet: %v", err)
 		t.Fatalf("could not make short url: %v", err)
 	}
-	//log.Printf("User: %s", r.GetName())
-	fmt.Printf("Short URL: %s", r.GetUrl())
 
 	result := &pb.Response{Url: "newshorturl"}
 
@@ -51,11 +53,13 @@ func TestCreateURL(t *testing.T) {
 func TestGetURL(t *testing.T) {
 	ctx, finish := context.WithCancel(context.Background())
 	defer finish()
-	StartMyService(ctx, listenAddr)
+	err := StartMyService(ctx, listenAddr)
+	if err != nil {
+		t.Fatalf("fail to start server: %v", err)
+	}
 
 	conn, err := grpc.NewClient(listenAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		//log.Fatalf("fail to dial: %v", err)
 		t.Fatalf("fail to dial: %v", err)
 	}
 	defer conn.Close()
@@ -70,16 +74,10 @@ func TestGetURL(t *testing.T) {
 		t.Fatalf("could not shorten url: %v", err)
 	}
 
-	//ctx1, cancel1 := context.WithTimeout(context.Background(), 5*time.Second)
-	//defer cancel1()
-
 	r, err := client.GetFullURL(ctx, &pb.Request{Url: r1.GetUrl()})
 	if err != nil {
-		//log.Fatalf("could not greet: %v", err)
 		t.Fatalf("could not get original url: %v", err)
 	}
-	//log.Printf("User: %s", r.GetName())
-	fmt.Printf("Full URL: %s", r.GetUrl())
 
 	result := &pb.Response{Url: "http://welcome.com"}
 

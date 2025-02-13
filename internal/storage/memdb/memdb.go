@@ -5,8 +5,7 @@ import (
 )
 
 func NewMemDB() (*badger.DB, error) {
-	opts := badger.DefaultOptions("./internal/storage/memdb")
-	//opts.Dir = "" // Указываем путь к in-memory хранилищу
+	opts := badger.DefaultOptions("./tmp")
 	db, err := badger.Open(opts)
 	if err != nil {
 		return nil, err
