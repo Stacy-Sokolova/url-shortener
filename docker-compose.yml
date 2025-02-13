@@ -1,0 +1,25 @@
+services:
+  app:
+    build: ./
+    command: ./wait-for-postgres.sh db ./main
+    env_file:
+      - .env
+    ports:
+      - "${HTTP_PORT}:${HTTP_PORT}"
+    depends_on:
+      - db
+    environment:
+      - DB_PASSWORD="${DB_PASSWORD}"
+      - STORAGE_TYPE="${STORAGE_TYPE}"
+
+  db:
+    restart: always
+    image: postgres:latest
+    env_file:
+      - .env
+    volumes:
+    - ./.database/postgres/data:/var/lib/postgresql/data
+    environment:
+      - DB_PASSWORD="${DB_PASSWORD}"
+    ports:
+      - 5432:5432
