@@ -1,9 +1,15 @@
 # Этап, на котором выполняется сборка приложения
 FROM golang:alpine as builder
-COPY go.mod .
-RUN go mod download
 
 COPY . .
+
+RUN go mod download
+
+RUN apk update
+RUN apk add postgresql-client
+
+RUN chmod +x wait-for-postgres.sh
+
 RUN go build -o /bin/main ./cmd/main.go
 
 FROM alpine:latest

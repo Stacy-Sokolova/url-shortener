@@ -31,7 +31,14 @@ func main() {
 	var db *sqlx.DB
 	var memdb *badger.DB
 
-	if dbType == "postgres" {
+	if dbType == "inmemory" {
+		memdb, err := m.NewMemDB()
+		if err != nil {
+			fmt.Printf("failed to initialize db: %s", err.Error())
+		}
+		storage = m.NewStorage(memdb)
+		fmt.Println("memdb init")
+	} else {
 		db, err := pg.NewPostgresDB(pg.Config{
 			Host:     viper.GetString("db.host"),
 			Port:     viper.GetString("db.port"),
@@ -45,15 +52,7 @@ func main() {
 			fmt.Printf("failed to initialize db: %s", err.Error())
 		}
 		storage = pg.NewStorage(db)
-
-	} else if dbType == "inmemory" {
-		memdb, err := m.NewMemDB()
-		if err != nil {
-			fmt.Printf("failed to initialize db: %s", err.Error())
-		}
-		storage = m.NewStorage(memdb)
-	} else {
-		//fmt.Println("error in db param")
+		fmt.Println("postgres init")
 	}
 
 	service := service.NewURLServer(storage)
@@ -93,11 +92,9 @@ func initConfig() error {
 }
 
 func dbParam() string {
-	var dbtype string
-	if len(os.Args) > 1 {
+	dbtype := os.Getenv("STORAGE_TYPE")
+	/*if len(os.Args) > 1 {
 		dbtype = os.Args[1]
-	} else {
-		fmt.Println("not correct param")
-	}
+	}*/
 	return dbtype
 }
