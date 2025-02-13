@@ -20,10 +20,13 @@ const (
 	listenAddr = "127.0.0.1:8080"
 )
 
-func TestGetURL(t *testing.T) {
+func TestURLFunctions(t *testing.T) {
 	ctx, finish := context.WithCancel(context.Background())
 	defer finish()
-	StartMyService(ctx, listenAddr)
+	err := StartMyService(ctx, listenAddr)
+	if err != nil {
+		t.Fatalf("fail to start server initial: %v", err)
+	}
 
 	conn, err := grpc.NewClient(listenAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -33,20 +36,35 @@ func TestGetURL(t *testing.T) {
 
 	client := pb.NewURLClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	expected := []string{"http://welcome.com", "http://youtube.com/somevideo", "http://github.com/somerepo"}
+	shortened := []string{}
+	results := []string{}
 
-	r1, _ := client.CreateShortURL(ctx, &pb.Request{Url: "http://welcome.com"})
+	for i := range expected {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
 
-	r, err := client.GetFullURL(ctx, &pb.Request{Url: r1.GetUrl()})
-	if err != nil {
-		t.Fatalf("could not get original url: %v", err)
+		r, err := client.CreateShortURL(ctx, &pb.Request{Url: expected[i]})
+		if err != nil {
+			t.Fatalf("could not make short url: %v", err)
+		}
+		shortened = append(shortened, r.GetUrl())
 	}
 
-	result := &pb.Response{Url: "http://welcome.com"}
+	for i := range shortened {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
 
-	if !reflect.DeepEqual(r.GetUrl(), result.GetUrl()) {
-		t.Fatalf("logs2 dont match\nhave %+v\nwant %+v", r, result)
+		r, err := client.GetFullURL(ctx, &pb.Request{Url: shortened[i]})
+		if err != nil {
+			t.Fatalf("could not get original url: %v", err)
+		}
+
+		results = append(results, r.GetUrl())
+	}
+
+	if !reflect.DeepEqual(results, expected) {
+		t.Fatalf("original urls dont match\nhave %+v\nwant %+v", results, expected)
 	}
 }
 
@@ -56,12 +74,11 @@ func StartMyService(ctx context.Context, addr string) error {
 		return err
 	}
 
-	opts := badger.DefaultOptions("")
+	opts := badger.DefaultOptions("/cmd")
 	db, err := badger.Open(opts)
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 
 	storage := memdb.NewStorage(db)
 	service := service.NewURLServer(storage)
@@ -78,6 +95,8 @@ func StartMyService(ctx context.Context, addr string) error {
 		<-ctx.Done()
 
 		server.Stop()
+		db.Close()
+		db.DropAll()
 		err = lis.Close()
 		if err != nil {
 			fmt.Println("close Error")

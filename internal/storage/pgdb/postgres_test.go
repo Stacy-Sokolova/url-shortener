@@ -20,12 +20,12 @@ const (
 	listenAddr = "127.0.0.1:8080"
 )
 
-func TestCreateURL(t *testing.T) {
+func TestURLFunctions(t *testing.T) {
 	ctx, finish := context.WithCancel(context.Background())
 	defer finish()
 	err := StartMyService(ctx, listenAddr)
 	if err != nil {
-		t.Fatalf("fail to start server: %v", err)
+		t.Fatalf("fail to start server initial: %v", err)
 	}
 	conn, err := grpc.NewClient(listenAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -35,54 +35,35 @@ func TestCreateURL(t *testing.T) {
 
 	client := pb.NewURLClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	expected := []string{"http://welcome.com", "http://youtube.com/somevideo", "http://github.com/somerepo"}
+	shortened := []string{}
+	results := []string{}
 
-	r, err := client.CreateShortURL(ctx, &pb.Request{Url: "http://welcome.com"})
-	if err != nil {
-		t.Fatalf("could not make short url: %v", err)
+	for i := range expected {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		r, err := client.CreateShortURL(ctx, &pb.Request{Url: expected[i]})
+		if err != nil {
+			t.Fatalf("could not make short url: %v", err)
+		}
+		shortened = append(shortened, r.GetUrl())
 	}
 
-	result := &pb.Response{Url: "newshorturl"}
+	for i := range shortened {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
 
-	if !reflect.DeepEqual(r.GetUrl(), result.GetUrl()) {
-		t.Fatalf("logs2 dont match\nhave %+v\nwant %+v", r, result)
-	}
-}
+		r, err := client.GetFullURL(ctx, &pb.Request{Url: shortened[i]})
+		if err != nil {
+			t.Fatalf("could not get original url: %v", err)
+		}
 
-func TestGetURL(t *testing.T) {
-	ctx, finish := context.WithCancel(context.Background())
-	defer finish()
-	err := StartMyService(ctx, listenAddr)
-	if err != nil {
-		t.Fatalf("fail to start server: %v", err)
+		results = append(results, r.GetUrl())
 	}
 
-	conn, err := grpc.NewClient(listenAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		t.Fatalf("fail to dial: %v", err)
-	}
-	defer conn.Close()
-
-	client := pb.NewURLClient(conn)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	r1, err := client.CreateShortURL(ctx, &pb.Request{Url: "http://welcome.com"})
-	if err != nil {
-		t.Fatalf("could not shorten url: %v", err)
-	}
-
-	r, err := client.GetFullURL(ctx, &pb.Request{Url: r1.GetUrl()})
-	if err != nil {
-		t.Fatalf("could not get original url: %v", err)
-	}
-
-	result := &pb.Response{Url: "http://welcome.com"}
-
-	if !reflect.DeepEqual(r.GetUrl(), result.GetUrl()) {
-		t.Fatalf("logs2 dont match\nhave %+v\nwant %+v", r, result)
+	if !reflect.DeepEqual(results, expected) {
+		t.Fatalf("original urls dont match\nhave %+v\nwant %+v", results, expected)
 	}
 }
 
@@ -90,7 +71,6 @@ func StartMyService(ctx context.Context, addr string) error {
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
-		//log.Fatalln("Cant listen port", err)
 	}
 
 	db, err := pgdb.NewPostgresDB(pgdb.Config{
@@ -102,9 +82,9 @@ func StartMyService(ctx context.Context, addr string) error {
 		Password: "Stacy",
 	})
 	if err != nil {
-		//logrus.Fatalf("failed to initialize db: %s", err.Error())
 		fmt.Printf("failed to initialize db: %s", err.Error())
 	}
+
 	storage := pgdb.NewStorage(db)
 	service := service.NewURLServer(storage)
 
@@ -112,15 +92,15 @@ func StartMyService(ctx context.Context, addr string) error {
 	pb.RegisterURLServer(server, service)
 
 	go func() {
-		fmt.Println("Starting server at " + addr)
 		err = server.Serve(lis)
 		if err != nil {
 			fmt.Println("server Error")
 		}
 
 		<-ctx.Done()
-		server.Stop()
 
+		server.Stop()
+		db.Close()
 		err = lis.Close()
 		if err != nil {
 			fmt.Println("close Error")
