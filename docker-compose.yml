@@ -1,19 +1,19 @@
+version: "3.8"
 services:
   app:
     build: ./
-    command: ./wait-for-postgres.sh db ./main
+    command: ./wait-for-postgres.sh db ./app
     env_file:
       - .env
     ports:
       - "${HTTP_PORT}:${HTTP_PORT}"
     depends_on:
-      - db
+      - postgres
     environment:
       - DB_PASSWORD="${DB_PASSWORD}"
       - STORAGE_TYPE="${STORAGE_TYPE}"
 
-  db:
-    restart: always
+  postgres:
     image: postgres:latest
     env_file:
       - .env
@@ -22,4 +22,5 @@ services:
     environment:
       - DB_PASSWORD="${DB_PASSWORD}"
     ports:
-      - 5432:5432
+      - "5432:5432"
+    restart: always
