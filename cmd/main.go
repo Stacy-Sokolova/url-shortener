@@ -42,12 +42,12 @@ func main() {
 		storage = m.NewStorage(memdb)
 	} else {
 		db, err := pg.NewPostgresDB(pg.Config{
-			Host:     viper.GetString("db.host"),
-			Port:     viper.GetString("db.port"),
-			Username: viper.GetString("db.username"),
-			DBName:   viper.GetString("db.dbname"),
+			Host:     os.Getenv("POSTGRES_HOST"),
+			Port:     os.Getenv("POSTGRES_PORT"),
+			Username: os.Getenv("POSTGRES_USER"),
+			DBName:   os.Getenv("POSTGRES_DB"),
 			SSLMode:  viper.GetString("db.sslmode"),
-			Password: viper.GetString("db.dbpassword"),
+			Password: os.Getenv("DB_PASSWORD"),
 		})
 		if err != nil {
 			logrus.Fatalf("failed to initialize db: %s", err.Error())
