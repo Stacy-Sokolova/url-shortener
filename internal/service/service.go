@@ -8,7 +8,6 @@ import (
 
 type MyURLServer struct {
 	storage storage.Storage
-	pb.UnimplementedURLServer
 }
 
 func NewURLServer(strg storage.Storage) *MyURLServer {

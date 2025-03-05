@@ -5,6 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 	s "url-server/internal/app"
+	"url-server/internal/handler"
 	"url-server/internal/service"
 	"url-server/internal/storage"
 	m "url-server/internal/storage/memdb"
@@ -56,10 +57,11 @@ func main() {
 	}
 
 	service := service.NewURLServer(storage)
+	handler := handler.NewHandler(service)
 
 	srv := new(s.Server)
 	go func() {
-		if err := srv.Run(viper.GetString("port"), service); err != nil {
+		if err := srv.Run(viper.GetString("port"), handler); err != nil {
 			logrus.Fatalf("error occured while running http server: %s", err.Error())
 		}
 	}()
