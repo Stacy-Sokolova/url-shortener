@@ -6,18 +6,17 @@ import (
 	"url-server/internal/storage"
 )
 
-type MyURLServer struct {
-	storage storage.Storage
+type URLService interface {
+	GetFullURL(ctx context.Context, r *pb.Request) (*pb.Response, error)
+	CreateShortURL(ctx context.Context, r *pb.Request) (*pb.Response, error)
 }
 
-func NewURLServer(strg storage.Storage) *MyURLServer {
-	return &MyURLServer{storage: strg}
+type Service struct {
+	URLService URLService
 }
 
-func (s *MyURLServer) GetFullURL(ctx context.Context, r *pb.Request) (*pb.Response, error) {
-	return s.storage.GetFullURL(ctx, r)
-}
-
-func (s *MyURLServer) CreateShortURL(ctx context.Context, r *pb.Request) (*pb.Response, error) {
-	return s.storage.CreateShortURL(ctx, r)
+func NewService(storage storage.Storage) *Service {
+	return &Service{
+		URLService: NewURLService(storage),
+	}
 }

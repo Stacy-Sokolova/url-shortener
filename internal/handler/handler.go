@@ -9,12 +9,12 @@ import (
 )
 
 type Handler struct {
-	service *service.MyURLServer
+	services *service.Service
 	pb.UnimplementedURLServer
 }
 
-func NewHandler(service *service.MyURLServer) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *service.Service) *Handler {
+	return &Handler{services: service}
 }
 
 func (h *Handler) Register(grpc *grpc.Server) {
@@ -22,9 +22,9 @@ func (h *Handler) Register(grpc *grpc.Server) {
 }
 
 func (h *Handler) GetFullURL(ctx context.Context, r *pb.Request) (*pb.Response, error) {
-	return h.service.GetFullURL(ctx, r)
+	return h.services.URLService.GetFullURL(ctx, r)
 }
 
 func (h *Handler) CreateShortURL(ctx context.Context, r *pb.Request) (*pb.Response, error) {
-	return h.service.CreateShortURL(ctx, r)
+	return h.services.URLService.CreateShortURL(ctx, r)
 }

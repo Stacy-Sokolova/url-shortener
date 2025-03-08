@@ -56,7 +56,7 @@ func main() {
 		storage = pg.NewStorage(db)
 	}
 
-	service := service.NewURLServer(storage)
+	service := service.NewService(storage)
 	handler := handler.NewHandler(service)
 
 	srv := new(s.Server)
