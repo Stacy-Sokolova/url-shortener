@@ -13,7 +13,7 @@ type Storage struct {
 	db *badger.DB
 }
 
-func NewStorage(db *badger.DB) *Storage {
+func NewInmemStorage(db *badger.DB) *Storage {
 	return &Storage{db: db}
 }
 
@@ -49,4 +49,8 @@ func (s *Storage) GetFullURL(ctx context.Context, r *pb.Request) (*pb.Response, 
 	}
 
 	return &pb.Response{Url: string(v)}, nil
+}
+
+func (s *Storage) Close() error {
+	return s.db.Close()
 }

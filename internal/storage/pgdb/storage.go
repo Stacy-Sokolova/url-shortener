@@ -14,7 +14,7 @@ type Storage struct {
 	db *sqlx.DB
 }
 
-func NewStorage(db *sqlx.DB) *Storage {
+func NewSQLStorage(db *sqlx.DB) *Storage {
 	return &Storage{db: db}
 }
 
@@ -51,4 +51,8 @@ func (s *Storage) GetFullURL(ctx context.Context, r *pb.Request) (*pb.Response, 
 	}
 
 	return &pb.Response{Url: fullURL}, nil
+}
+
+func (s *Storage) Close() error {
+	return s.db.Close()
 }

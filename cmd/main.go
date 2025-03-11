@@ -11,8 +11,6 @@ import (
 	m "url-server/internal/storage/memdb"
 	pg "url-server/internal/storage/pgdb"
 
-	"github.com/dgraph-io/badger"
-	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -30,17 +28,13 @@ func main() {
 	}
 
 	dbType := dbParam()
-
-	var storage storage.Storage
-	var db *sqlx.DB
-	var memdb *badger.DB
-
+	var database any
 	if dbType == "inmemory" {
 		memdb, err := m.NewMemDB()
 		if err != nil {
 			logrus.Fatalf("failed to initialize in-memory db: %s", err.Error())
 		}
-		storage = m.NewStorage(memdb)
+		database = m.NewInmemStorage(memdb)
 	} else {
 		db, err := pg.NewPostgresDB(pg.Config{
 			Host:     os.Getenv("POSTGRES_HOST"),
@@ -53,9 +47,10 @@ func main() {
 		if err != nil {
 			logrus.Fatalf("failed to initialize db: %s", err.Error())
 		}
-		storage = pg.NewStorage(db)
+		database = pg.NewSQLStorage(db)
 	}
 
+	storage := storage.NewStorage(database)
 	service := service.NewService(storage)
 	handler := handler.NewHandler(service)
 
@@ -76,14 +71,8 @@ func main() {
 
 	srv.Shutdown()
 
-	if dbType == "postgres" {
-		if err := db.Close(); err != nil {
-			logrus.Errorf("error occured on db connection close: %s", err.Error())
-		}
-	} else {
-		if err := memdb.Close(); err != nil {
-			logrus.Errorf("error occured on db connection close: %s", err.Error())
-		}
+	if err := storage.Close(); err != nil {
+		logrus.Errorf("error occured on db connection close: %s", err.Error())
 	}
 }
 
