@@ -2,8 +2,8 @@ package memdb
 
 import (
 	"context"
+	"fmt"
 
-	pb "url-server/internal/service/proto"
 	fnc "url-server/internal/storage/data_processing"
 
 	"github.com/dgraph-io/badger"
@@ -17,8 +17,7 @@ func NewInmemStorage(db *badger.DB) *Storage {
 	return &Storage{db: db}
 }
 
-func (s *Storage) CreateShortURL(ctx context.Context, r *pb.Request) (*pb.Response, error) {
-	fullURL := r.GetUrl()
+func (s *Storage) CreateShortURL(ctx context.Context, fullURL string) (string, error) {
 	shortURL := fnc.URLShortener(fullURL)
 	val := []byte(fullURL)
 	key := []byte(shortURL)
@@ -26,14 +25,13 @@ func (s *Storage) CreateShortURL(ctx context.Context, r *pb.Request) (*pb.Respon
 		return txn.Set(key, val)
 	})
 	if err != nil {
-		return nil, err
+		return "", fmt.Errorf("inmemory.CreateShortURL - db.Update: %v", err)
 	}
 
-	return &pb.Response{Url: shortURL}, nil
+	return shortURL, nil
 }
 
-func (s *Storage) GetFullURL(ctx context.Context, r *pb.Request) (*pb.Response, error) {
-	shortURL := r.GetUrl()
+func (s *Storage) GetFullURL(ctx context.Context, shortURL string) (string, error) {
 	key := []byte(shortURL)
 	var v []byte
 	err := s.db.View(func(txn *badger.Txn) error {
@@ -45,10 +43,10 @@ func (s *Storage) GetFullURL(ctx context.Context, r *pb.Request) (*pb.Response, 
 		return err
 	})
 	if err != nil {
-		return nil, err
+		return "", fmt.Errorf("inmemory.GetFullURL - db.View: %v", err)
 	}
 
-	return &pb.Response{Url: string(v)}, nil
+	return string(v), nil
 }
 
 func (s *Storage) Close() error {

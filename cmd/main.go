@@ -17,7 +17,10 @@ import (
 )
 
 func main() {
-	logrus.SetFormatter(new(logrus.JSONFormatter))
+	logrus.SetFormatter(&logrus.JSONFormatter{
+		TimestampFormat: "2006-01-02 15:04:05",
+	})
+	logrus.SetOutput(os.Stdout)
 
 	if err := initConfig(); err != nil {
 		logrus.Fatalf("error initializing configs: %s", err.Error())

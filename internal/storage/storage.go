@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	pb "url-server/internal/service/proto"
 	"url-server/internal/storage/memdb"
 	"url-server/internal/storage/pgdb"
 
@@ -11,8 +10,8 @@ import (
 )
 
 type Storage interface {
-	GetFullURL(ctx context.Context, r *pb.Request) (*pb.Response, error)
-	CreateShortURL(ctx context.Context, r *pb.Request) (*pb.Response, error)
+	GetFullURL(ctx context.Context, url string) (string, error)
+	CreateShortURL(ctx context.Context, url string) (string, error)
 	Close() error
 }
 
